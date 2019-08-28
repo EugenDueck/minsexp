@@ -6,12 +6,12 @@ A (not quite) minimal golang library that reads, evaluates and prints s-expressi
 ```
 form := "(+ 1 a)"
 a := 5
-expr, idx, err := minsexp.Read(form, 0)    // +++++++++++ read form
+sexp, idx, err := minsexp.Read(form, 0)    // +++++++++++ read form
 if err != nil {
   env := make(map[string]interface{}, 2)   // create env map
   env["+"] = StdEnv["+"]                   // borrow "+" fn from standard env
   env["a"] = decimal.NewFromFloat(a)       // bind value (numbers have to be decimals)
-  out, err := minsexp.Eval(env, nil, expr) // +++++++++++ eval expr
+  out, err := minsexp.Eval(env, nil, sexp) // +++++++++++ eval sexp
   if err != nil {
     fmt.Println(out)                       // prints "6"
   }

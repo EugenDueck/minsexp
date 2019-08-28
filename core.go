@@ -8,51 +8,51 @@ import (
 
 type Symbol string
 
-func Read(exprStr string, startIdx int) (expr interface{}, idx int, err error) {
-	return parseExpression(exprStr, startIdx)
+func Read(sexpStr string, startIdx int) (sexp interface{}, idx int, err error) {
+	return parseSexp(sexpStr, startIdx)
 }
 
 // functions must have this interface: func(fnName string, args []interface{}) (interface{}, error)
 // special forms must have this interface: func(env map[string]interface{}, lexicalScope []map[string]interface{}, fnName string, args []interface{}) (interface{}, error)
-func Eval(env map[string]interface{}, lexicalScope []map[string]interface{}, exprIn interface{}) (exprOut interface{}, err error) {
-	switch expr := exprIn.(type) {
+func Eval(env map[string]interface{}, lexicalScope []map[string]interface{}, sexpIn interface{}) (sexpOut interface{}, err error) {
+	switch sexp := sexpIn.(type) {
 	case []interface{}:
-		if len(expr) == 0 {
+		if len(sexp) == 0 {
 			return nil, nil
 		}
 
-		if expr[0] == Symbol("let") {
-			if len(expr)%2 != 0 {
-				return nil, errors.New("let needs an uneven number of arguments: name/expression pairs and one expression")
+		if sexp[0] == Symbol("let") {
+			if len(sexp)%2 != 0 {
+				return nil, errors.New("let needs an uneven number of arguments: name/sexp pairs and one sexp")
 			}
 
-			//nameValuePairCount := (len(expr) - 2) / 2
+			//nameValuePairCount := (len(sexp) - 2) / 2
 			//newLexicalScope := make([]map[string]interface{}, len(lexicalScope), len(lexicalScope) + nameValuePairCount)
 			//copy(newLexicalScope, lexicalScope)
 			newLexicalScope := append(lexicalScope[:0:0], lexicalScope...)
 			newLexicalScopeMap := make(map[string]interface{})
 			newLexicalScope = append(newLexicalScope, newLexicalScopeMap)
-			for i := 1; i+1 < len(expr); i += 2 {
-				if nameSymbol, ok := expr[i].(Symbol); ok {
-					value, err := Eval(env, newLexicalScope, expr[i+1])
+			for i := 1; i+1 < len(sexp); i += 2 {
+				if nameSymbol, ok := sexp[i].(Symbol); ok {
+					value, err := Eval(env, newLexicalScope, sexp[i+1])
 					if err != nil {
 						return nil, err
 					}
 					newLexicalScopeMap[string(nameSymbol)] = value
 				} else {
-					return nil, errors.New("let needs an uneven number of arguments: name-symbol/expression pairs and one expression")
+					return nil, errors.New("let needs an uneven number of arguments: name-symbol/sexp pairs and one sexp")
 				}
 			}
-			return Eval(env, newLexicalScope, expr[len(expr)-1])
+			return Eval(env, newLexicalScope, sexp[len(sexp)-1])
 		}
 
-		fnOrSpecialForm, fnErr := Eval(env, lexicalScope, expr[0])
+		fnOrSpecialForm, fnErr := Eval(env, lexicalScope, sexp[0])
 		if fnErr != nil {
 			return nil, fnErr
 		}
 		if funFn, ok := fnOrSpecialForm.(func([]interface{}) (interface{}, error)); ok {
-			args := make([]interface{}, len(expr)-1)
-			for i, v := range expr[1:] {
+			args := make([]interface{}, len(sexp)-1)
+			for i, v := range sexp[1:] {
 				out, fnErr := Eval(env, lexicalScope, v)
 				if fnErr != nil {
 					return nil, fnErr
@@ -61,34 +61,34 @@ func Eval(env map[string]interface{}, lexicalScope []map[string]interface{}, exp
 			}
 			return funFn(args)
 		} else if specialForm, ok := fnOrSpecialForm.(func(map[string]interface{}, []map[string]interface{}, []interface{}) (interface{}, error)); ok {
-			return specialForm(env, lexicalScope, expr[1:])
+			return specialForm(env, lexicalScope, sexp[1:])
 		} else {
-			return nil, errors.New(fmt.Sprintf("Not a special form and not a function: %v", expr[0]))
+			return nil, errors.New(fmt.Sprintf("Not a special form and not a function: %v", sexp[0]))
 		}
 	case Symbol:
 		for i := len(lexicalScope) - 1; i >= 0; i-- {
 			m := lexicalScope[i]
-			v, ok := m[string(expr)]
+			v, ok := m[string(sexp)]
 			if ok {
 				return v, nil
 			}
 		}
-		v, ok := env[string(expr)]
+		v, ok := env[string(sexp)]
 		if ok {
 			return v, nil
 		} else {
-			return nil, errors.New("Unbound name " + string(expr))
+			return nil, errors.New("Unbound name " + string(sexp))
 		}
 	default:
-		return expr, nil
+		return sexp, nil
 	}
 }
 
-func Print(exprI interface{}) string {
-	switch expr := exprI.(type) {
+func Print(sexpI interface{}) string {
+	switch sexp := sexpI.(type) {
 	case []interface{}:
 		s := "("
-		for _, v := range expr {
+		for _, v := range sexp {
 			if s != "(" {
 				s += " "
 			}
@@ -96,9 +96,9 @@ func Print(exprI interface{}) string {
 		}
 		return s + ")"
 	case string:
-		return "\"" + expr + "\""
+		return "\"" + sexp + "\""
 	default:
-		return fmt.Sprintf("%v", expr)
+		return fmt.Sprintf("%v", sexp)
 	}
 }
 
@@ -163,7 +163,7 @@ func parseList(s string, startIdx int) ([]interface{}, int, error) {
 		}
 		var value interface{}
 		var err error
-		value, startIdx, err = parseExpression(s, i)
+		value, startIdx, err = parseSexp(s, i)
 		if err != nil {
 			return nil, startIdx, err
 		}
@@ -242,10 +242,10 @@ func parseNumber(s string, startIdx int) (interface{}, int, error) {
 	return nil, len(s), errors.New("impossible error")
 }
 
-func parseExpression(s string, startIdx int) (value interface{}, nextIndex int, err error) {
+func parseSexp(s string, startIdx int) (value interface{}, nextIndex int, err error) {
 	i := getNextNonWSP(s, startIdx)
 	if i >= len(s) {
-		return nil, i, errors.New("reached end of input parsing expression")
+		return nil, i, errors.New("reached end of input parsing sexp")
 	}
 	b := s[i]
 

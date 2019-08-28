@@ -10,39 +10,39 @@ func TestSimpleForms(t *testing.T) {
 	for inputForm, expectedOutput := range map[string]interface{}{
 		"()": nil,
 	} {
-		readExpr, idx, err := Read(inputForm, 0)
+		readSexp, idx, err := Read(inputForm, 0)
 		require.Nil(t, err, inputForm)
 		require.Equal(t, idx, len(inputForm), inputForm)
 
-		printed := Print(readExpr)
+		printed := Print(readSexp)
 		require.Equal(t, inputForm, printed)
 
-		evalledExpr, err := Eval(nil, nil, readExpr)
+		evalledSexp, err := Eval(nil, nil, readSexp)
 		require.Nil(t, err, inputForm)
-		require.Equal(t, evalledExpr, expectedOutput, inputForm)
+		require.Equal(t, evalledSexp, expectedOutput, inputForm)
 	}
 }
 
 func TestBindLexicalScope(t *testing.T) {
-	readExpr, idx, err := Read("a", 0)
+	readSexp, idx, err := Read("a", 0)
 	require.Nil(t, err)
 	require.Equal(t, 1, idx)
-	require.Equal(t, Symbol("a"), readExpr)
+	require.Equal(t, Symbol("a"), readSexp)
 
 	expectedOutput := 5
-	evalledExpr, err := Eval(nil, []map[string]interface{}{{"a": expectedOutput}}, readExpr)
+	evalledSexp, err := Eval(nil, []map[string]interface{}{{"a": expectedOutput}}, readSexp)
 	require.Nil(t, err)
-	require.Equal(t, expectedOutput, evalledExpr)
+	require.Equal(t, expectedOutput, evalledSexp)
 }
 
 func TestBindEnv(t *testing.T) {
 	form := "(+ 1 a)"
-	readExpr, idx, err := Read(form, 0)
+	readSexp, idx, err := Read(form, 0)
 	require.Nil(t, err)
 	require.Equal(t, len(form), idx)
-	require.NotNil(t, readExpr)
+	require.NotNil(t, readSexp)
 
-	printed := Print(readExpr)
+	printed := Print(readSexp)
 	require.Equal(t, form, printed)
 
 	aVal := decimal.NewFromFloat(5)
@@ -53,9 +53,9 @@ func TestBindEnv(t *testing.T) {
 	//}
 	env["+"] = StdEnv["+"]
 	env["a"] = aVal
-	evalledExpr, err := Eval(env, nil, readExpr)
+	evalledSexp, err := Eval(env, nil, readSexp)
 	require.Nil(t, err)
-	require.Equal(t, expectedOutput, evalledExpr)
+	require.Equal(t, expectedOutput, evalledSexp)
 }
 
 func TestNumbers(t *testing.T) {
@@ -69,17 +69,17 @@ func TestNumbers(t *testing.T) {
 		// min float64 * 10
 		"-1797693134862320000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 	} {
-		expectedExprOut, err := decimal.NewFromString(v)
+		expectedSexpOut, err := decimal.NewFromString(v)
 		require.Nil(t, err, v)
-		exprOut := testRead(t, v, expectedExprOut, v)
-		testEval(t, exprOut, expectedExprOut, v)
+		sexpOut := testRead(t, v, expectedSexpOut, v)
+		testEval(t, sexpOut, expectedSexpOut, v)
 	}
 }
 
 func TestMalformedNumbers(t *testing.T) {
 	for _, v := range []string{"0.", "1.", "-1.", "+2."} {
-		expr, idx, err := Read(v, 0)
-		require.Nil(t, expr, v)
+		sexp, idx, err := Read(v, 0)
+		require.Nil(t, sexp, v)
 		require.NotNil(t, err, v)
 		require.Equal(t, len(v)-1, idx, v)
 	}
@@ -92,17 +92,17 @@ func TestSymbols(t *testing.T) {
 }
 
 func testRead(t *testing.T, in string, expectedOut interface{}, msgAndArgs ...interface{}) interface{} {
-	expr, idx, err := Read(in, 0)
+	sexp, idx, err := Read(in, 0)
 	require.Nil(t, err, msgAndArgs...)
 	require.Equal(t, len(in), idx, msgAndArgs...)
-	require.Equal(t, expectedOut, expr, msgAndArgs...)
-	return expr
+	require.Equal(t, expectedOut, sexp, msgAndArgs...)
+	return sexp
 
 }
 
-func testEval(t *testing.T, exprIn interface{}, expectedOut interface{}, msgAndArgs ...interface{}) interface{} {
-	exprOut, err := Eval(nil, nil, exprIn)
+func testEval(t *testing.T, sexpIn interface{}, expectedOut interface{}, msgAndArgs ...interface{}) interface{} {
+	sexpOut, err := Eval(nil, nil, sexpIn)
 	require.Nil(t, err, msgAndArgs...)
-	require.Equal(t, expectedOut, exprOut, msgAndArgs...)
-	return exprOut
+	require.Equal(t, expectedOut, sexpOut, msgAndArgs...)
+	return sexpOut
 }

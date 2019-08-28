@@ -16,21 +16,21 @@ func TestCustomFnInEnv(t *testing.T) {
 			env[k] = v
 		}
 		env["concat"] = concatFn
-		readExpr, idx, err := Read(inputForm, 0)
+		readSexp, idx, err := Read(inputForm, 0)
 		require.Nil(t, err, inputForm)
 		require.Equal(t, idx, len(inputForm), inputForm)
 
-		printed := Print(readExpr)
+		printed := Print(readSexp)
 		require.Equal(t, inputForm, printed)
 
-		evalledExpr, err := Eval(env, nil, readExpr)
+		evalledSexp, err := Eval(env, nil, readSexp)
 		require.Nil(t, err, inputForm)
 		if decV, ok := expectedOutput.(decimal.Decimal); ok {
 			if ok {
-				require.Zero(t, decV.Cmp(evalledExpr.(decimal.Decimal)), inputForm)
+				require.Zero(t, decV.Cmp(evalledSexp.(decimal.Decimal)), inputForm)
 			}
 		} else {
-			require.Equal(t, expectedOutput, evalledExpr, inputForm)
+			require.Equal(t, expectedOutput, evalledSexp, inputForm)
 		}
 	}
 }

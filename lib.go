@@ -40,7 +40,7 @@ var (
 
 func ifForm(env map[string]interface{}, lexicalScope []map[string]interface{}, args []interface{}) (interface{}, error) {
 	if len(args) != 2 && len(args) != 3 {
-		return nil, errors.New("(if condition then [else]) expects a 'condition', a 'then' expression, and may have an 'else' expression")
+		return nil, errors.New("(if condition then [else]) expects a 'condition', a 'then' sexp, and may have an 'else' sexp")
 	}
 
 	conditionResult, err := Eval(env, lexicalScope, args[0])

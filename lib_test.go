@@ -38,21 +38,21 @@ func TestForms(t *testing.T) {
 		"(/ 1 2)":              decimal.NewFromFloat(0.5),
 		"(/ 1 2 3)":            decimal.NewFromFloat(0.5).Div(decimal.NewFromFloat(3)),
 	} {
-		readExpr, idx, err := Read(inputForm, 0)
+		readSexp, idx, err := Read(inputForm, 0)
 		require.Nil(t, err, inputForm)
 		require.Equal(t, idx, len(inputForm), inputForm)
 
-		printed := Print(readExpr)
+		printed := Print(readSexp)
 		require.Equal(t, inputForm, printed)
 
-		evalledExpr, err := Eval(StdEnv, nil, readExpr)
+		evalledSexp, err := Eval(StdEnv, nil, readSexp)
 		require.Nil(t, err, inputForm)
 		if decV, ok := expectedOutput.(decimal.Decimal); ok {
 			if ok {
-				require.Zero(t, decV.Cmp(evalledExpr.(decimal.Decimal)), inputForm)
+				require.Zero(t, decV.Cmp(evalledSexp.(decimal.Decimal)), inputForm)
 			}
 		} else {
-			require.Equal(t, expectedOutput, evalledExpr, inputForm)
+			require.Equal(t, expectedOutput, evalledSexp, inputForm)
 		}
 	}
 }
@@ -92,21 +92,21 @@ func TestLet(t *testing.T) {
 		"(let a 0 b 0 a 1 b 2 (/ a b))":   decimal.NewFromFloat(0.5),
 		"(let a 0 b 0 a 2 b 3 (/ 1 a b))": decimal.NewFromFloat(0.5).Div(decimal.NewFromFloat(3)),
 	} {
-		readExpr, idx, err := Read(inputForm, 0)
+		readSexp, idx, err := Read(inputForm, 0)
 		require.Nil(t, err, inputForm)
 		require.Equal(t, idx, len(inputForm), inputForm)
 
-		printed := Print(readExpr)
+		printed := Print(readSexp)
 		require.Equal(t, inputForm, printed)
 
-		evalledExpr, err := Eval(StdEnv, nil, readExpr)
+		evalledSexp, err := Eval(StdEnv, nil, readSexp)
 		require.Nil(t, err, inputForm)
 		if decV, ok := expectedOutput.(decimal.Decimal); ok {
 			if ok {
-				require.Zero(t, decV.Cmp(evalledExpr.(decimal.Decimal)), inputForm)
+				require.Zero(t, decV.Cmp(evalledSexp.(decimal.Decimal)), inputForm)
 			}
 		} else {
-			require.Equal(t, expectedOutput, evalledExpr, inputForm)
+			require.Equal(t, expectedOutput, evalledSexp, inputForm)
 		}
 	}
 }
@@ -128,24 +128,24 @@ func TestGet(t *testing.T) {
 		"(get obj \"Price\")": decimal.NewFromFloat(1.2345),
 		"(get obj \"Test\")":  testA,
 	} {
-		readExpr, idx, err := Read(inputForm, 0)
+		readSexp, idx, err := Read(inputForm, 0)
 		require.Nil(t, err, inputForm)
 		require.Equal(t, idx, len(inputForm), inputForm)
 
-		printed := Print(readExpr)
+		printed := Print(readSexp)
 		require.Equal(t, inputForm, printed)
 
 		strukt := testStruct{decimal.NewFromFloat(1.2345), testA}
-		evalledExpr, err := Eval(StdEnv, []map[string]interface{}{{"obj": &strukt}}, readExpr)
+		evalledSexp, err := Eval(StdEnv, []map[string]interface{}{{"obj": &strukt}}, readSexp)
 		require.Nil(t, err, inputForm)
 		if decV, ok := expectedOutput.(decimal.Decimal); ok {
 			if ok {
-				if decV.Cmp(evalledExpr.(decimal.Decimal)) != 0 {
-					require.Equal(t, expectedOutput, evalledExpr, inputForm)
+				if decV.Cmp(evalledSexp.(decimal.Decimal)) != 0 {
+					require.Equal(t, expectedOutput, evalledSexp, inputForm)
 				}
 			}
 		} else {
-			require.Equal(t, expectedOutput, evalledExpr, inputForm)
+			require.Equal(t, expectedOutput, evalledSexp, inputForm)
 		}
 	}
 }
@@ -157,16 +157,16 @@ func TestSet(t *testing.T) {
 		"(set obj \"Test\" \"b\")":                    &testStruct{decimal.NewFromFloat(1234), testB},
 		"(get (set obj \"Test\" \"b\") \"Test\")":     testB,
 	} {
-		readExpr, idx, err := Read(inputForm, 0)
+		readSexp, idx, err := Read(inputForm, 0)
 		require.Nil(t, err, inputForm)
 		require.Equal(t, idx, len(inputForm), inputForm)
 
-		printed := Print(readExpr)
+		printed := Print(readSexp)
 		require.Equal(t, inputForm, printed)
 
 		strukt := testStruct{decimal.NewFromFloat(1234), testA}
-		evalledExpr, err := Eval(StdEnv, []map[string]interface{}{{"obj": &strukt}}, readExpr)
+		evalledSexp, err := Eval(StdEnv, []map[string]interface{}{{"obj": &strukt}}, readSexp)
 		require.Nil(t, err, inputForm)
-		require.Equal(t, expectedOutput, evalledExpr, inputForm)
+		require.Equal(t, expectedOutput, evalledSexp, inputForm)
 	}
 }
