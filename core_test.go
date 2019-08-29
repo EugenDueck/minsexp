@@ -71,8 +71,8 @@ func TestNumbers(t *testing.T) {
 	} {
 		expectedSexpOut, err := decimal.NewFromString(v)
 		require.Nil(t, err, v)
-		sexpOut := testRead(t, v, expectedSexpOut, v)
-		testEval(t, sexpOut, expectedSexpOut, v)
+		testRead(t, v, expectedSexpOut, v)
+		testReadFully(t, v, expectedSexpOut, v)
 	}
 }
 
@@ -88,6 +88,7 @@ func TestMalformedNumbers(t *testing.T) {
 func TestSymbols(t *testing.T) {
 	for _, v := range []string{"+", "-", "a", "and", "if", "nil", ":asdf", "let*"} {
 		testRead(t, v, Symbol(v), v)
+		testReadFully(t, v, Symbol(v), v)
 	}
 }
 
@@ -97,12 +98,11 @@ func testRead(t *testing.T, in string, expectedOut interface{}, msgAndArgs ...in
 	require.Equal(t, len(in), idx, msgAndArgs...)
 	require.Equal(t, expectedOut, sexp, msgAndArgs...)
 	return sexp
-
 }
 
-func testEval(t *testing.T, sexpIn interface{}, expectedOut interface{}, msgAndArgs ...interface{}) interface{} {
-	sexpOut, err := Eval(nil, nil, sexpIn)
+func testReadFully(t *testing.T, in string, expectedOut interface{}, msgAndArgs ...interface{}) interface{} {
+	sexp, err := ReadFully(in)
 	require.Nil(t, err, msgAndArgs...)
-	require.Equal(t, expectedOut, sexpOut, msgAndArgs...)
-	return sexpOut
+	require.Equal(t, expectedOut, sexp, msgAndArgs...)
+	return sexp
 }
