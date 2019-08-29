@@ -57,7 +57,7 @@ func TestForms(t *testing.T) {
 	}
 }
 
-// run:                    go test -bench=. -cpuprofile=cpu.out
+// run:                    go test -bench=. -benchtime 5s -cpuprofile=cpu.out
 // create profiling graph: go tool pprof cpu.out
 //                         web
 func BenchmarkRead(b *testing.B) {
@@ -92,11 +92,9 @@ func BenchmarkRead(b *testing.B) {
 		"(/ 1 2)":              decimal.NewFromFloat(0.5),
 		"(/ 1 2 3)":            decimal.NewFromFloat(0.5).Div(decimal.NewFromFloat(3)),
 	}
-	for i := 0; i < 300000; i++ {
-		for n := 0; n < b.N; n++ {
-			for inputForm := range forms {
-				_, _, _ = Read(inputForm, 0)
-			}
+	for n := 0; n < b.N; n++ {
+		for inputForm := range forms {
+			_, _, _ = Read(inputForm, 0)
 		}
 	}
 }
