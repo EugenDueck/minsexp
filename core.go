@@ -12,7 +12,7 @@ func Read(sexpStr string, startIdx int) (sexp interface{}, idx int, err error) {
 	return parseSexp(sexpStr, startIdx)
 }
 
-func ReadFully(form string) (interface{}, error) {
+func ReadFully(form string) (sexp interface{}, err error) {
 	expr, idx, err := Read(form, 0)
 	if idx != len(form) {
 		return nil, errors.New("expected a string containing a single form, but got: " + form)
