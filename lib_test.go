@@ -57,6 +57,50 @@ func TestForms(t *testing.T) {
 	}
 }
 
+// run:                    go test -bench=. -cpuprofile=cpu.out
+// create profiling graph: go tool pprof cpu.out
+//                         web
+func BenchmarkRead(b *testing.B) {
+	forms := map[string]interface{}{
+		"(not false)":          true,
+		"(not nil)":            true,
+		"(not true)":           false,
+		"(not 1)":              false,
+		"(not \"a\")":          false,
+		"(= (not false) true)": true,
+		"(= (not true) false)": true,
+		"(= 1)":                true,
+		"(= 1 1)":              true,
+		"(= 1 1 1)":            true,
+		"(= 1 1 2)":            false,
+		"(= 1 2)":              false,
+		"(= 1 \"1\")":          false,
+		"(not= 1)":             false,
+		"(not= 1 1)":           false,
+		"(not= 1 1 1)":         false,
+		"(not= 1 1 2)":         true,
+		"(not= 1 2)":           true,
+		"(not= 1 \"1\")":       true,
+		"(+)":                  decimal.Zero,
+		"(+ 1 2)":              decimal.NewFromFloat(3),
+		"(- 1)":                decimal.NewFromFloat(-1),
+		"(- 1 2)":              decimal.NewFromFloat(-1),
+		"(*)":                  decimal.NewFromFloat(1),
+		"(* 1 2)":              decimal.NewFromFloat(2),
+		"(* 1 2 3)":            decimal.NewFromFloat(6),
+		"(/ 1)":                decimal.NewFromFloat(1),
+		"(/ 1 2)":              decimal.NewFromFloat(0.5),
+		"(/ 1 2 3)":            decimal.NewFromFloat(0.5).Div(decimal.NewFromFloat(3)),
+	}
+	for i := 0; i < 300000; i++ {
+		for n := 0; n < b.N; n++ {
+			for inputForm, _ := range forms {
+				Read(inputForm, 0)
+			}
+		}
+	}
+}
+
 func TestLet(t *testing.T) {
 	for inputForm, expectedOutput := range map[string]interface{}{
 		"(let 1)":                         decimal.NewFromFloat(1),
