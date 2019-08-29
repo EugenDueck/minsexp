@@ -94,8 +94,8 @@ func BenchmarkRead(b *testing.B) {
 	}
 	for i := 0; i < 300000; i++ {
 		for n := 0; n < b.N; n++ {
-			for inputForm, _ := range forms {
-				Read(inputForm, 0)
+			for inputForm := range forms {
+				_, _, _ = Read(inputForm, 0)
 			}
 		}
 	}
