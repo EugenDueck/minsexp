@@ -168,7 +168,7 @@ func lessThanOrEqualFn(args []interface{}) (interface{}, error) {
 	if e != nil {
 		return nil, e
 	} else {
-		return cmp.(int32) <= 0, nil
+		return cmp.(int) <= 0, nil
 	}
 }
 
@@ -177,7 +177,7 @@ func lessThanFn(args []interface{}) (interface{}, error) {
 	if e != nil {
 		return nil, e
 	} else {
-		return cmp.(int32) < 0, nil
+		return cmp.(int) < 0, nil
 	}
 }
 
@@ -186,7 +186,7 @@ func greaterThanFn(args []interface{}) (interface{}, error) {
 	if e != nil {
 		return nil, e
 	} else {
-		return cmp.(int32) > 0, nil
+		return cmp.(int) > 0, nil
 	}
 }
 
@@ -195,7 +195,7 @@ func greaterThanOrEqualFn(args []interface{}) (interface{}, error) {
 	if e != nil {
 		return nil, e
 	} else {
-		return cmp.(int32) >= 0, nil
+		return cmp.(int) >= 0, nil
 	}
 }
 
