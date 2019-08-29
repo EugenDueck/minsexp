@@ -1,6 +1,6 @@
 package minsexp
 
-// will only forward errors from cb; will not generate its own errors
+// will only forward errors from cb; will not generate any errors of its own
 func TraverseLists(exprI interface{}, cb func([]interface{}) error) error {
 	switch expr := exprI.(type) {
 	case []interface{}:
