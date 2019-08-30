@@ -7,15 +7,10 @@ import (
 )
 import "github.com/stretchr/testify/require"
 
-func TestCustomFnInEnv(t *testing.T) {
+func TestCustomFnInLexicalScope(t *testing.T) {
 	for inputForm, expectedOutput := range map[string]interface{}{
 		"(concat \"foo-\" \"bar\")": "foo-bar",
 	} {
-		env := make(map[string]interface{}, len(StdEnv)+1)
-		for k, v := range StdEnv {
-			env[k] = v
-		}
-		env["concat"] = concatFn
 		readSexp, idx, err := Read(inputForm, 0)
 		require.Nil(t, err, inputForm)
 		require.Equal(t, idx, len(inputForm), inputForm)
@@ -23,6 +18,35 @@ func TestCustomFnInEnv(t *testing.T) {
 		printed := Print(readSexp)
 		require.Equal(t, inputForm, printed)
 
+		lexicalScopes := []map[string]interface{}{{"concat": concatFn}}
+		evalledSexp, err := Eval(StdEnv, lexicalScopes, readSexp)
+		require.Nil(t, err, inputForm)
+		if decV, ok := expectedOutput.(decimal.Decimal); ok {
+			if ok {
+				require.Zero(t, decV.Cmp(evalledSexp.(decimal.Decimal)), inputForm)
+			}
+		} else {
+			require.Equal(t, expectedOutput, evalledSexp, inputForm)
+		}
+	}
+}
+
+func TestCustomFnInEnv(t *testing.T) {
+	for inputForm, expectedOutput := range map[string]interface{}{
+		"(concat \"foo-\" \"bar\")": "foo-bar",
+	} {
+		readSexp, idx, err := Read(inputForm, 0)
+		require.Nil(t, err, inputForm)
+		require.Equal(t, idx, len(inputForm), inputForm)
+
+		printed := Print(readSexp)
+		require.Equal(t, inputForm, printed)
+
+		env := make(map[string]interface{}, len(StdEnv)+1)
+		for k, v := range StdEnv {
+			env[k] = v
+		}
+		env["concat"] = concatFn
 		evalledSexp, err := Eval(env, nil, readSexp)
 		require.Nil(t, err, inputForm)
 		if decV, ok := expectedOutput.(decimal.Decimal); ok {

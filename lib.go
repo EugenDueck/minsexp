@@ -16,6 +16,7 @@ var (
 		"false": false,
 
 		// special forms
+		"do":  doForm,
 		"and": andForm,
 		"or":  orForm,
 		"if":  ifForm,
@@ -60,6 +61,18 @@ func trueish(value interface{}) bool {
 	return value != nil && value != false
 }
 
+func doForm(env map[string]interface{}, lexicalScope []map[string]interface{}, args []interface{}) (interface{}, error) {
+	var lastResult interface{} = nil
+	for _, arg := range args {
+		result, err := Eval(env, lexicalScope, arg)
+		if err != nil {
+			return nil, err
+		}
+		lastResult = result
+	}
+	return lastResult, nil
+}
+
 func andForm(env map[string]interface{}, lexicalScope []map[string]interface{}, args []interface{}) (interface{}, error) {
 	var lastTrueish interface{} = true
 	for _, arg := range args {
@@ -70,14 +83,14 @@ func andForm(env map[string]interface{}, lexicalScope []map[string]interface{}, 
 		if trueish(result) {
 			lastTrueish = result
 		} else {
-			return nil, nil
+			return result, nil
 		}
 	}
 	return lastTrueish, nil
 }
 
 func orForm(env map[string]interface{}, lexicalScope []map[string]interface{}, args []interface{}) (interface{}, error) {
-	var lastFalseish interface{} = true
+	var lastFalseish interface{} = nil
 	for _, arg := range args {
 		result, err := Eval(env, lexicalScope, arg)
 		if err != nil {

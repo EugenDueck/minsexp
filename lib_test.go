@@ -157,6 +157,146 @@ func TestLet(t *testing.T) {
 	}
 }
 
+type expectedCountAndResult struct {
+	count  int
+	result interface{}
+}
+
+func TestDo(t *testing.T) {
+	for inputForm, expectedOutput := range map[string]expectedCountAndResult{
+		"(do)":                               {0, nil},
+		"(do true nil)":                      {0, nil},
+		"(do nil)":                           {0, nil},
+		"(do true)":                          {0, true},
+		"(do (count) true)":                  {1, true},
+		"(do (count) (count) true)":          {2, true},
+		"(do (count) (count) (count))":       {3, nil},
+		"(do (count) (count) false (count))": {3, nil},
+		"(do (count) (count) nil (count))":   {3, nil},
+		"(do false)":                         {0, false},
+		"(do 1)":                             {0, decimal.NewFromFloat(1)},
+		"(do false true 3 4 false)":          {0, false},
+	} {
+
+		counter := 0
+		countFn := func(args []interface{}) (interface{}, error) {
+			counter++
+			if len(args) == 1 {
+				return args[0], nil
+			} else {
+				return nil, nil
+			}
+		}
+		lexicalScopes := []map[string]interface{}{{"count": countFn}}
+
+		readSexp, idx, err := Read(inputForm, 0)
+		require.Nil(t, err, inputForm)
+		require.Equal(t, idx, len(inputForm), inputForm)
+
+		printed := Print(readSexp)
+		require.Equal(t, inputForm, printed)
+
+		evalledSexp, err := Eval(StdEnv, lexicalScopes, readSexp)
+		require.Nil(t, err, inputForm)
+		require.Equal(t, expectedOutput.count, counter, inputForm)
+		if decV, ok := expectedOutput.result.(decimal.Decimal); ok {
+			if ok {
+				require.Zero(t, decV.Cmp(evalledSexp.(decimal.Decimal)), inputForm)
+			}
+		} else {
+			require.Equal(t, expectedOutput.result, evalledSexp, inputForm)
+		}
+	}
+}
+
+func TestAnd(t *testing.T) {
+	for inputForm, expectedOutput := range map[string]expectedCountAndResult{
+		"(and)":                                            {0, true},
+		"(and true nil)":                                   {0, nil},
+		"(and true nil true)":                              {0, nil},
+		"(and true nil (count))":                           {0, nil},
+		"(and (count) true nil (count))":                   {1, nil},
+		"(and (count) true false (count))":                 {1, nil},
+		"(and (count true) true false (count))":            {1, false},
+		"(and (count true) (count 3) false (count))":       {2, false},
+		"(and (count true) (count 3) (count) false)":       {3, nil},
+		"(and (count true) (count 3) (count false) false)": {3, false},
+	} {
+
+		counter := 0
+		countFn := func(args []interface{}) (interface{}, error) {
+			counter++
+			if len(args) == 1 {
+				return args[0], nil
+			} else {
+				return nil, nil
+			}
+		}
+		lexicalScopes := []map[string]interface{}{{"count": countFn}}
+
+		readSexp, idx, err := Read(inputForm, 0)
+		require.Nil(t, err, inputForm)
+		require.Equal(t, idx, len(inputForm), inputForm)
+
+		printed := Print(readSexp)
+		require.Equal(t, inputForm, printed)
+
+		evalledSexp, err := Eval(StdEnv, lexicalScopes, readSexp)
+		require.Nil(t, err, inputForm)
+		require.Equal(t, expectedOutput.count, counter, inputForm)
+		if decV, ok := expectedOutput.result.(decimal.Decimal); ok {
+			if ok {
+				require.Zero(t, decV.Cmp(evalledSexp.(decimal.Decimal)), inputForm)
+			}
+		} else {
+			require.Equal(t, expectedOutput.result, evalledSexp, inputForm)
+		}
+	}
+}
+
+func TestOr(t *testing.T) {
+	for inputForm, expectedOutput := range map[string]expectedCountAndResult{
+		"(or)":                                {0, nil},
+		"(or true nil)":                       {0, true},
+		"(or 1 nil)":                          {0, decimal.NewFromFloat(1)},
+		"(or false nil (count) (count true))": {2, true},
+		"(or false nil (count) (count true) (count false))": {2, true},
+		"(or (count) true (count))":                         {1, true},
+		"(or true (count))":                                 {0, true},
+		"(or true nil (count))":                             {0, true},
+	} {
+
+		counter := 0
+		countFn := func(args []interface{}) (interface{}, error) {
+			counter++
+			if len(args) == 1 {
+				return args[0], nil
+			} else {
+				return nil, nil
+			}
+		}
+		lexicalScopes := []map[string]interface{}{{"count": countFn}}
+
+		readSexp, idx, err := Read(inputForm, 0)
+		require.Nil(t, err, inputForm)
+		require.Equal(t, idx, len(inputForm), inputForm)
+
+		printed := Print(readSexp)
+		require.Equal(t, inputForm, printed)
+
+		evalledSexp, err := Eval(StdEnv, lexicalScopes, readSexp)
+		require.Nil(t, err, inputForm)
+		require.Equal(t, expectedOutput.count, counter, inputForm)
+		if decV, ok := expectedOutput.result.(decimal.Decimal); ok {
+			if ok {
+				require.Zero(t, decV.Cmp(evalledSexp.(decimal.Decimal)), inputForm)
+			}
+		} else {
+			require.Equal(t, expectedOutput.result, evalledSexp, inputForm)
+		}
+	}
+}
+
 type testType string
 
 const (
