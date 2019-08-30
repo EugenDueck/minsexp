@@ -165,14 +165,25 @@ const (
 )
 
 type testStruct struct {
-	Price decimal.Decimal
-	Test  testType
+	Price        decimal.Decimal
+	PricePtr1    *decimal.Decimal
+	PricePtr2    *decimal.Decimal
+	TestType     testType
+	TestTypePtr1 *testType
+	TestTypePtr2 *testType
 }
 
 func TestGet(t *testing.T) {
-	for inputForm, expectedOutput := range map[string]interface{}{
-		"(get obj \"Price\")": decimal.NewFromFloat(1.2345),
-		"(get obj \"Test\")":  testA,
+	somePrice := decimal.NewFromFloat(98.765)
+	someTestType := testA
+	strukt := testStruct{somePrice, &somePrice, nil, someTestType, &someTestType, nil}
+	for inputForm, expectedOutputI := range map[string]interface{}{
+		`(get obj "Price")`:        somePrice,
+		`(get obj "PricePtr1")`:    somePrice,
+		`(get obj "PricePtr2")`:    nil,
+		`(get obj "TestTypePtr1")`: someTestType,
+		`(get obj "TestTypePtr2")`: nil,
+		`(get obj "TestType")`:     someTestType,
 	} {
 		readSexp, idx, err := Read(inputForm, 0)
 		require.Nil(t, err, inputForm)
@@ -181,27 +192,23 @@ func TestGet(t *testing.T) {
 		printed := Print(readSexp)
 		require.Equal(t, inputForm, printed)
 
-		strukt := testStruct{decimal.NewFromFloat(1.2345), testA}
 		evalledSexp, err := Eval(StdEnv, []map[string]interface{}{{"obj": &strukt}}, readSexp)
 		require.Nil(t, err, inputForm)
-		if decV, ok := expectedOutput.(decimal.Decimal); ok {
-			if ok {
-				if decV.Cmp(evalledSexp.(decimal.Decimal)) != 0 {
-					require.Equal(t, expectedOutput, evalledSexp, inputForm)
-				}
+		switch expectedOutput := expectedOutputI.(type) {
+		case decimal.Decimal:
+			if expectedOutput.Cmp(evalledSexp.(decimal.Decimal)) != 0 {
+				require.Equal(t, expectedOutput, evalledSexp, inputForm)
 			}
-		} else {
+		default:
 			require.Equal(t, expectedOutput, evalledSexp, inputForm)
 		}
 	}
 }
 
-func TestSet(t *testing.T) {
-	for inputForm, expectedOutput := range map[string]interface{}{
-		"(set obj \"Price\" 1.23456)":                 &testStruct{decimal.NewFromFloat(1.23456), testA},
-		"(get (set obj \"Price\" 1.23456) \"Price\")": decimal.NewFromFloat(1.23456),
-		"(set obj \"Test\" \"b\")":                    &testStruct{decimal.NewFromFloat(1234), testB},
-		"(get (set obj \"Test\" \"b\") \"Test\")":     testB,
+func TestGetFails(t *testing.T) {
+	for _, inputForm := range []string{
+		`(get obj)`,
+		`(get "PricePtr1")`,
 	} {
 		readSexp, idx, err := Read(inputForm, 0)
 		require.Nil(t, err, inputForm)
@@ -210,9 +217,57 @@ func TestSet(t *testing.T) {
 		printed := Print(readSexp)
 		require.Equal(t, inputForm, printed)
 
-		strukt := testStruct{decimal.NewFromFloat(1234), testA}
+		strukt := testStruct{decimal.NewFromFloat(1234), nil, nil, testA, nil, nil}
+		evalledSexp, err := Eval(StdEnv, []map[string]interface{}{{"obj": &strukt}}, readSexp)
+		require.NotNil(t, err, inputForm)
+		require.Nil(t, evalledSexp, inputForm)
+	}
+}
+
+func TestSet(t *testing.T) {
+	somePrice := decimal.NewFromFloat(98.765)
+	someTestType := testA
+	for inputForm, expectedOutput := range map[string]interface{}{
+		`(set obj "Price" 1.23456)`:                         &testStruct{decimal.NewFromFloat(1.23456), nil, nil, testA, nil, nil},
+		`(set obj "PricePtr1" nil)`:                         &testStruct{decimal.NewFromFloat(1234), nil, nil, testA, nil, nil},
+		`(set obj "PricePtr1" 98.765)`:                      &testStruct{decimal.NewFromFloat(1234), &somePrice, nil, testA, nil, nil},
+		`(set obj "Price" 1.23456 "TestType" "b")`:          &testStruct{decimal.NewFromFloat(1.23456), nil, nil, testB, nil, nil},
+		`(get (set obj "Price" 1.23456) "Price")`:           decimal.NewFromFloat(1.23456),
+		`(set obj "TestType" "b")`:                          &testStruct{decimal.NewFromFloat(1234), nil, nil, testB, nil, nil},
+		`(get (set obj "TestType" "b") "TestType")`:         testB,
+		`(set obj "TestTypePtr1" "a")`:                      &testStruct{decimal.NewFromFloat(1234), nil, nil, testA, &someTestType, nil},
+		`(get (set obj "TestTypePtr1" "a") "TestTypePtr1")`: testA,
+	} {
+		readSexp, idx, err := Read(inputForm, 0)
+		require.Nil(t, err, inputForm)
+		require.Equal(t, idx, len(inputForm), inputForm)
+
+		printed := Print(readSexp)
+		require.Equal(t, inputForm, printed)
+
+		strukt := testStruct{decimal.NewFromFloat(1234), nil, nil, testA, nil, nil}
 		evalledSexp, err := Eval(StdEnv, []map[string]interface{}{{"obj": &strukt}}, readSexp)
 		require.Nil(t, err, inputForm)
 		require.Equal(t, expectedOutput, evalledSexp, inputForm)
+	}
+}
+
+func TestSetFails(t *testing.T) {
+	for _, inputForm := range []string{
+		`(set obj "Price")`,
+		`(set obj "PricePtr1")`,
+		`(set obj "Price" 1.23456 "TestType")`,
+	} {
+		readSexp, idx, err := Read(inputForm, 0)
+		require.Nil(t, err, inputForm)
+		require.Equal(t, idx, len(inputForm), inputForm)
+
+		printed := Print(readSexp)
+		require.Equal(t, inputForm, printed)
+
+		strukt := testStruct{decimal.NewFromFloat(1234), nil, nil, testA, nil, nil}
+		evalledSexp, err := Eval(StdEnv, []map[string]interface{}{{"obj": &strukt}}, readSexp)
+		require.NotNil(t, err, inputForm)
+		require.Nil(t, evalledSexp, inputForm)
 	}
 }

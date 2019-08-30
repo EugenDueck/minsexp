@@ -263,28 +263,50 @@ func divideFn(args []interface{}) (interface{}, error) {
 
 func getFn(args []interface{}) (interface{}, error) {
 	if len(args) != 2 {
-		return nil, errors.New("get expects a struct argument and a string argument containing the field name")
+		return nil, errors.New("Usage: (get <struct> <field-name>)")
 	}
 	fieldName, ok := args[1].(string)
 	if !ok {
-		return nil, errors.New("get expects a struct argument and a string argument containing the field name")
+		return nil, errors.New("Usage: (get <struct> <field-name>)")
 	}
 	structValue := reflect.ValueOf(args[0]).Elem()
 	field := structValue.FieldByName(fieldName)
+	if field.Kind() == reflect.Ptr {
+		if field.IsNil() {
+			return nil, nil
+		}
+		field = field.Elem()
+	}
 	return field.Interface(), nil
 }
 
 func setFn(args []interface{}) (interface{}, error) {
-	if len(args) != 3 {
-		return nil, errors.New("set expects a struct argument, a string argument containing the field name, and a value argument")
-	}
-	fieldName, ok := args[1].(string)
-	if !ok {
-		return nil, errors.New("set expects a struct argument, a string argument containing the field name, and a value argument")
+	if len(args) < 3 || len(args)%2 == 0 {
+		return nil, errors.New("Usage: (set <struct> <<field-name> <value>>+)")
 	}
 	obj := args[0]
-	objValueElem := reflect.ValueOf(obj).Elem()
-	field := objValueElem.FieldByName(fieldName)
-	field.Set(reflect.ValueOf(args[2]).Convert(field.Type())) // we need to use Convert to allow setting aliased types using instances of the underlying type
+	for i := 1; i < len(args); i += 2 {
+		fieldName, ok := args[i].(string)
+		if !ok {
+			return nil, errors.New("Usage: (set <struct> <<field-name> <value>>+)")
+		}
+		objValueElem := reflect.ValueOf(obj).Elem()
+		field := objValueElem.FieldByName(fieldName)
+		newValueI := args[i+1]
+		newValue := reflect.ValueOf(newValueI)
+		fieldType := field.Type()
+		if field.Kind() == reflect.Ptr {
+			if newValueI == nil {
+				field.Set(reflect.Zero(fieldType))
+			} else {
+				fieldTypeElem := fieldType.Elem()
+				rv := reflect.New(fieldTypeElem)
+				rv.Elem().Set(newValue.Convert(fieldTypeElem))
+				field.Set(rv)
+			}
+		} else {
+			field.Set(newValue.Convert(fieldType)) // we need to use Convert to allow setting aliased types using instances of the underlying type
+		}
+	}
 	return obj, nil
 }
