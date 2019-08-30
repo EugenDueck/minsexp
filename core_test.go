@@ -1,10 +1,41 @@
 package minsexp
 
 import (
+	"errors"
+	"fmt"
 	"github.com/shopspring/decimal"
 	"testing"
 )
 import "github.com/stretchr/testify/require"
+
+func TestDontPanicInEval(t *testing.T) {
+	panicIdx := 0
+	for inputForm, expectedErr := range map[string]interface{}{
+		`(panic)`:         errors.New("minsexp: panic! 1"),
+		`(panic "oh no")`: errors.New("panic! 2: oh no"),
+	} {
+		panicIdx++
+		panicFn := func(args []interface{}) (interface{}, error) {
+			if len(args) == 1 {
+				panic(errors.New(fmt.Sprintf("panic! %v: %v", panicIdx, args[0])))
+			} else {
+				panic(fmt.Sprintf("panic! %v", panicIdx))
+			}
+		}
+		lexicalScopes := []map[string]interface{}{{"panic": panicFn}}
+
+		readSexp, idx, err := Read(inputForm, 0)
+		require.Nil(t, err, inputForm)
+		require.Equal(t, idx, len(inputForm), inputForm)
+
+		printed := Print(readSexp)
+		require.Equal(t, inputForm, printed)
+
+		evalledSexp, err := Eval(StdEnv, lexicalScopes, readSexp)
+		require.Nil(t, evalledSexp, inputForm)
+		require.Equal(t, expectedErr, err, inputForm)
+	}
+}
 
 func TestSimpleForms(t *testing.T) {
 	for inputForm, expectedOutput := range map[string]interface{}{

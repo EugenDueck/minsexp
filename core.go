@@ -9,6 +9,16 @@ import (
 type Symbol string
 
 func Read(sexpStr string, startIdx int) (sexp interface{}, idx int, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			sexp = nil
+			var ok bool
+			err, ok = r.(error)
+			if !ok {
+				err = fmt.Errorf("minsexp: %v", r)
+			}
+		}
+	}()
 	return parseSexp(sexpStr, startIdx)
 }
 
@@ -23,6 +33,16 @@ func ReadFully(sexpStr string) (sexp interface{}, err error) {
 // functions must have this interface: func(fnName string, args []interface{}) (interface{}, error)
 // special forms must have this interface: func(env map[string]interface{}, lexicalScope []map[string]interface{}, fnName string, args []interface{}) (interface{}, error)
 func Eval(env map[string]interface{}, lexicalScope []map[string]interface{}, sexp interface{}) (result interface{}, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			result = nil
+			var ok bool
+			err, ok = r.(error)
+			if !ok {
+				err = fmt.Errorf("minsexp: %v", r)
+			}
+		}
+	}()
 	switch sexp := sexp.(type) {
 	case []interface{}:
 		if len(sexp) == 0 {
@@ -92,7 +112,17 @@ func Eval(env map[string]interface{}, lexicalScope []map[string]interface{}, sex
 	}
 }
 
-func Print(sexpI interface{}) string {
+func Print(sexpI interface{}) (s string) {
+	defer func() {
+		if r := recover(); r != nil {
+			var ok bool
+			err, ok := r.(error)
+			if !ok {
+				err = fmt.Errorf("minsexp: %v", r)
+			}
+			s = err.Error()
+		}
+	}()
 	switch sexp := sexpI.(type) {
 	case []interface{}:
 		s := "("
