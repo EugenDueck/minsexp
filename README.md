@@ -36,6 +36,7 @@ if err != nil {
 
 ### special forms
 - let (built-in)
+- do
 - and
 - or
 - if
