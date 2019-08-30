@@ -12,18 +12,18 @@ func Read(sexpStr string, startIdx int) (sexp interface{}, idx int, err error) {
 	return parseSexp(sexpStr, startIdx)
 }
 
-func ReadFully(form string) (sexp interface{}, err error) {
-	expr, idx, err := Read(form, 0)
-	if idx != len(form) {
-		return nil, errors.New("expected a string containing a single form, but got: " + form)
+func ReadFully(sexpStr string) (sexp interface{}, err error) {
+	expr, idx, err := Read(sexpStr, 0)
+	if idx != len(sexpStr) {
+		return nil, errors.New("expected a string containing a single sexp, but got: " + sexpStr)
 	}
 	return expr, err
 }
 
 // functions must have this interface: func(fnName string, args []interface{}) (interface{}, error)
 // special forms must have this interface: func(env map[string]interface{}, lexicalScope []map[string]interface{}, fnName string, args []interface{}) (interface{}, error)
-func Eval(env map[string]interface{}, lexicalScope []map[string]interface{}, sexpIn interface{}) (sexpOut interface{}, err error) {
-	switch sexp := sexpIn.(type) {
+func Eval(env map[string]interface{}, lexicalScope []map[string]interface{}, sexp interface{}) (result interface{}, err error) {
+	switch sexp := sexp.(type) {
 	case []interface{}:
 		if len(sexp) == 0 {
 			return nil, nil
