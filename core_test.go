@@ -64,13 +64,8 @@ func TestSimpleForms(t *testing.T) {
 }
 
 func TestBindLexicalScope(t *testing.T) {
-	readSexp, idx, err := Read("a", 0)
-	require.Nil(t, err)
-	require.Equal(t, 1, idx)
-	require.Equal(t, Symbol("a"), readSexp)
-
 	expectedOutput := 5
-	evalledSexp, err := Eval(nil, []map[string]interface{}{{"a": expectedOutput}}, readSexp)
+	evalledSexp, err := ReadEval([]map[string]interface{}{{"a": expectedOutput}}, "a")
 	require.Nil(t, err)
 	require.Equal(t, expectedOutput, evalledSexp)
 }

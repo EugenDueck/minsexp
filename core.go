@@ -24,11 +24,19 @@ func Read(sexpStr string, startIdx int) (sexp interface{}, idx int, err error) {
 }
 
 func ReadFully(sexpStr string) (sexp interface{}, err error) {
-	expr, idx, err := Read(sexpStr, 0)
+	sexp, idx, err := Read(sexpStr, 0)
 	if idx != len(sexpStr) {
 		return nil, errors.New("expected a string containing a single sexp, but got: " + sexpStr)
 	}
-	return expr, err
+	return sexp, err
+}
+
+func ReadEval(lexicalScope []map[string]interface{}, sexpStr string) (result interface{}, err error) {
+	expr, err := ReadFully(sexpStr)
+	if err != nil {
+		return nil, err
+	}
+	return Eval(StdEnv, lexicalScope, expr)
 }
 
 // functions must have this interface: func(fnName string, args []interface{}) (interface{}, error)
