@@ -1,8 +1,8 @@
 package minsexp
 
 import (
-	"errors"
 	"fmt"
+	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
 )
 
@@ -17,6 +17,7 @@ func Read(sexpStr string, startIdx int) (sexp interface{}, idx int, err error) {
 			if !ok {
 				err = fmt.Errorf("minsexp: %v", r)
 			}
+			err = errors.WithStack(err)
 		}
 	}()
 	return parseSexp(sexpStr, startIdx)
@@ -41,6 +42,7 @@ func Eval(env map[string]interface{}, lexicalScope []map[string]interface{}, sex
 			if !ok {
 				err = fmt.Errorf("minsexp: %v", r)
 			}
+			err = errors.WithStack(err)
 		}
 	}()
 	switch sexp := sexp.(type) {

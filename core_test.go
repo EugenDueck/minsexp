@@ -1,25 +1,24 @@
 package minsexp
 
 import (
-	"errors"
 	"fmt"
+	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
+	"strings"
 	"testing"
 )
 import "github.com/stretchr/testify/require"
 
 func TestDontPanicInEval(t *testing.T) {
-	panicIdx := 0
-	for inputForm, expectedErr := range map[string]interface{}{
-		`(panic)`:         errors.New("minsexp: panic! 1"),
-		`(panic "oh no")`: errors.New("panic! 2: oh no"),
+	for inputForm, expectedErr := range map[string]string{
+		`(panic)`:         "panic!",
+		`(panic "oh no")`: "minsexp: oh no",
 	} {
-		panicIdx++
 		panicFn := func(args []interface{}) (interface{}, error) {
 			if len(args) == 1 {
-				panic(errors.New(fmt.Sprintf("panic! %v: %v", panicIdx, args[0])))
+				panic(args[0])
 			} else {
-				panic(fmt.Sprintf("panic! %v", panicIdx))
+				panic(errors.New("panic!"))
 			}
 		}
 		lexicalScopes := []map[string]interface{}{{"panic": panicFn}}
@@ -33,8 +32,18 @@ func TestDontPanicInEval(t *testing.T) {
 
 		evalledSexp, err := Eval(StdEnv, lexicalScopes, readSexp)
 		require.Nil(t, evalledSexp, inputForm)
-		require.Equal(t, expectedErr, err, inputForm)
+		require.NotNil(t, err, inputForm)
+		require.Equal(t, expectedErr, err.Error(), inputForm)
+		stackTracer, ok := err.(stackTracer)
+		require.True(t, ok, inputForm)
+		require.True(t, len(stackTracer.StackTrace()) >= 5, inputForm)
+		topOfStack := fmt.Sprintf("%+s", stackTracer.StackTrace()[0])
+		require.Equal(t, 0, strings.Index(topOfStack, "github.com/EugenDueck/minsexp.Eval"), inputForm)
 	}
+}
+
+type stackTracer interface {
+	StackTrace() errors.StackTrace
 }
 
 func TestSimpleForms(t *testing.T) {
@@ -136,4 +145,82 @@ func testReadFully(t *testing.T, in string, expectedOut interface{}, msgAndArgs 
 	require.Nil(t, err, msgAndArgs...)
 	require.Equal(t, expectedOut, sexp, msgAndArgs...)
 	return sexp
+}
+
+func TestLet(t *testing.T) {
+	for inputForm, expectedOutput := range map[string]interface{}{
+		"(let a 0 a)":                     decimal.Zero,
+		"(let a 1 a 0 a)":                 decimal.Zero,
+		"(let a 1 (let a 0 a))":           decimal.Zero,
+		"(let a 0 (do (let a 1 a) a))":    decimal.Zero,
+		"(let 1)":                         decimal.NewFromFloat(1),
+		"(let (+))":                       decimal.Zero,
+		"(let a 1 (+))":                   decimal.Zero,
+		"(let a 2 (+ 1 a))":               decimal.NewFromFloat(3),
+		"(let a 1 (- a))":                 decimal.NewFromFloat(-1),
+		"(let a 2 (- 1 a))":               decimal.NewFromFloat(-1),
+		"(let a 1 (*))":                   decimal.NewFromFloat(1),
+		"(let a 1 (* a 2))":               decimal.NewFromFloat(2),
+		"(let a 3 (* 1 2 a))":             decimal.NewFromFloat(6),
+		"(let a 1 (/ a))":                 decimal.NewFromFloat(1),
+		"(let a 1 (/ a 2))":               decimal.NewFromFloat(0.5),
+		"(let a 2 (/ 1 a 3))":             decimal.NewFromFloat(0.5).Div(decimal.NewFromFloat(3)),
+		"(let a 1 b 2 (+))":               decimal.Zero,
+		"(let a 1 b 2 (+ a b))":           decimal.NewFromFloat(3),
+		"(let a 1 b 2 (- a))":             decimal.NewFromFloat(-1),
+		"(let a 1 b 2 (- a b))":           decimal.NewFromFloat(-1),
+		"(let a 1 b 2 (*))":               decimal.NewFromFloat(1),
+		"(let a 1 b 2 (* a b))":           decimal.NewFromFloat(2),
+		"(let a 1 b 2 (* a b 3))":         decimal.NewFromFloat(6),
+		"(let a 1 b 2 (/ a))":             decimal.NewFromFloat(1),
+		"(let a 1 b 2 (/ a b))":           decimal.NewFromFloat(0.5),
+		"(let a 2 b 3 (/ 1 a b))":         decimal.NewFromFloat(0.5).Div(decimal.NewFromFloat(3)),
+		"(let a 0 b 0 a 1 b 2 (+))":       decimal.Zero,
+		"(let a 0 b 0 a 1 b 2 (+ a b))":   decimal.NewFromFloat(3),
+		"(let a 0 b 0 a 1 b 2 (- a))":     decimal.NewFromFloat(-1),
+		"(let a 0 b 0 a 1 b 2 (- a b))":   decimal.NewFromFloat(-1),
+		"(let a 0 b 0 a 1 b 2 (*))":       decimal.NewFromFloat(1),
+		"(let a 0 b 0 a 1 b 2 (* a b))":   decimal.NewFromFloat(2),
+		"(let a 0 b 0 a 1 b 2 (* a b 3))": decimal.NewFromFloat(6),
+		"(let a 0 b 0 a 1 b 2 (/ a))":     decimal.NewFromFloat(1),
+		"(let a 0 b 0 a 1 b 2 (/ a b))":   decimal.NewFromFloat(0.5),
+		"(let a 0 b 0 a 2 b 3 (/ 1 a b))": decimal.NewFromFloat(0.5).Div(decimal.NewFromFloat(3)),
+	} {
+		readSexp, idx, err := Read(inputForm, 0)
+		require.Nil(t, err, inputForm)
+		require.Equal(t, idx, len(inputForm), inputForm)
+
+		printed := Print(readSexp)
+		require.Equal(t, inputForm, printed)
+
+		evalledSexp, err := Eval(StdEnv, nil, readSexp)
+		require.Nil(t, err, inputForm)
+		if decV, ok := expectedOutput.(decimal.Decimal); ok {
+			if ok {
+				require.Zero(t, decV.Cmp(evalledSexp.(decimal.Decimal)), inputForm)
+			}
+		} else {
+			require.Equal(t, expectedOutput, evalledSexp, inputForm)
+		}
+	}
+}
+
+func TestLetFails(t *testing.T) {
+	for _, inputForm := range []string{
+		`(let)`,
+		`(let a 1)`,
+		`(let a 1 b 2)`,
+		`(let a 1 b)`,
+	} {
+		readSexp, idx, err := Read(inputForm, 0)
+		require.Nil(t, err, inputForm)
+		require.Equal(t, idx, len(inputForm), inputForm)
+
+		printed := Print(readSexp)
+		require.Equal(t, inputForm, printed)
+
+		evalledSexp, err := Eval(nil, nil, readSexp)
+		require.NotNil(t, err, inputForm)
+		require.Nil(t, evalledSexp, inputForm)
+	}
 }

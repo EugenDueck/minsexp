@@ -103,60 +103,6 @@ func BenchmarkRead(b *testing.B) {
 	}
 }
 
-func TestLet(t *testing.T) {
-	for inputForm, expectedOutput := range map[string]interface{}{
-		"(let 1)":                         decimal.NewFromFloat(1),
-		"(let (+))":                       decimal.Zero,
-		"(let a 1 (+))":                   decimal.Zero,
-		"(let a 2 (+ 1 a))":               decimal.NewFromFloat(3),
-		"(let a 1 (- a))":                 decimal.NewFromFloat(-1),
-		"(let a 2 (- 1 a))":               decimal.NewFromFloat(-1),
-		"(let a 1 (*))":                   decimal.NewFromFloat(1),
-		"(let a 1 (* a 2))":               decimal.NewFromFloat(2),
-		"(let a 3 (* 1 2 a))":             decimal.NewFromFloat(6),
-		"(let a 1 (/ a))":                 decimal.NewFromFloat(1),
-		"(let a 1 (/ a 2))":               decimal.NewFromFloat(0.5),
-		"(let a 2 (/ 1 a 3))":             decimal.NewFromFloat(0.5).Div(decimal.NewFromFloat(3)),
-		"(let a 1 b 2 (+))":               decimal.Zero,
-		"(let a 1 b 2 (+ a b))":           decimal.NewFromFloat(3),
-		"(let a 1 b 2 (- a))":             decimal.NewFromFloat(-1),
-		"(let a 1 b 2 (- a b))":           decimal.NewFromFloat(-1),
-		"(let a 1 b 2 (*))":               decimal.NewFromFloat(1),
-		"(let a 1 b 2 (* a b))":           decimal.NewFromFloat(2),
-		"(let a 1 b 2 (* a b 3))":         decimal.NewFromFloat(6),
-		"(let a 1 b 2 (/ a))":             decimal.NewFromFloat(1),
-		"(let a 1 b 2 (/ a b))":           decimal.NewFromFloat(0.5),
-		"(let a 2 b 3 (/ 1 a b))":         decimal.NewFromFloat(0.5).Div(decimal.NewFromFloat(3)),
-		"(let a 0 b 0 a 1 b 2 (+))":       decimal.Zero,
-		"(let a 0 b 0 a 1 b 2 (+ a b))":   decimal.NewFromFloat(3),
-		"(let a 0 b 0 a 1 b 2 (- a))":     decimal.NewFromFloat(-1),
-		"(let a 0 b 0 a 1 b 2 (- a b))":   decimal.NewFromFloat(-1),
-		"(let a 0 b 0 a 1 b 2 (*))":       decimal.NewFromFloat(1),
-		"(let a 0 b 0 a 1 b 2 (* a b))":   decimal.NewFromFloat(2),
-		"(let a 0 b 0 a 1 b 2 (* a b 3))": decimal.NewFromFloat(6),
-		"(let a 0 b 0 a 1 b 2 (/ a))":     decimal.NewFromFloat(1),
-		"(let a 0 b 0 a 1 b 2 (/ a b))":   decimal.NewFromFloat(0.5),
-		"(let a 0 b 0 a 2 b 3 (/ 1 a b))": decimal.NewFromFloat(0.5).Div(decimal.NewFromFloat(3)),
-	} {
-		readSexp, idx, err := Read(inputForm, 0)
-		require.Nil(t, err, inputForm)
-		require.Equal(t, idx, len(inputForm), inputForm)
-
-		printed := Print(readSexp)
-		require.Equal(t, inputForm, printed)
-
-		evalledSexp, err := Eval(StdEnv, nil, readSexp)
-		require.Nil(t, err, inputForm)
-		if decV, ok := expectedOutput.(decimal.Decimal); ok {
-			if ok {
-				require.Zero(t, decV.Cmp(evalledSexp.(decimal.Decimal)), inputForm)
-			}
-		} else {
-			require.Equal(t, expectedOutput, evalledSexp, inputForm)
-		}
-	}
-}
-
 type expectedCountAndResult struct {
 	count  int
 	result interface{}
